@@ -14,7 +14,7 @@ YELLOW = "\033[93m"
 RESET = "\033[0m"
 BOLD = "\033[1m"
 
-# Final Banner (NEW — as provided)
+# Final Banner (animated)
 ANIMATED_BANNER = [
     f"{CYAN}⠉⠉⠉⠉⠉⠉⠓⠒⠒⠒⠒⠶⠤⢤⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀{RESET}",
     f"{CYAN}⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠛⠻⢤⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀{RESET}",
@@ -67,6 +67,16 @@ def random_mac():
 def random_ip():
     return f"192.168.{random.randint(0, 254)}.{random.randint(2, 254)}"
 
+def backup_original(interface):
+    try:
+        mac = subprocess.check_output(f"cat /sys/class/net/{interface}/address", shell=True).decode().strip()
+        ip = subprocess.check_output(f"ip addr show {interface} | grep 'inet ' | awk '{{print $2}}'", shell=True).decode().strip()
+        with open("/etc/sigma_backup.conf", "w") as f:
+            f.write(f"{interface}\n{mac}\n{ip}\n")
+        print(f"{YELLOW}[~] Original MAC and IP backed up to /etc/sigma_backup.conf{RESET}")
+    except Exception as e:
+        print(f"{RED}[!] Backup failed: {e}{RESET}")
+
 def change_mac(interface, mac):
     subprocess.run(["ip", "link", "set", interface, "down"])
     subprocess.run(["ip", "link", "set", interface, "address", mac])
@@ -104,12 +114,15 @@ def menu():
         choice = input(">> ").strip()
 
         if choice == "1":
+            backup_original(iface)
             ip = random_ip()
             change_ip(iface, ip)
         elif choice == "2":
+            backup_original(iface)
             mac = random_mac()
             change_mac(iface, mac)
         elif choice == "3":
+            backup_original(iface)
             ip = random_ip()
             mac = random_mac()
             change_mac(iface, mac)
